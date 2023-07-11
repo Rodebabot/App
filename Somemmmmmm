@@ -11,23 +11,23 @@ def extract_data(file_path):
         if 'cusip' in lines[i].lower():
             n += 1
             row_data = lines[i].strip().split()
-            if 'security' in lines[i].lower() and 'cusip' in lines[i].lower():
-                security_index = row_data.index('security')
-                cusip_index = row_data.index('cusip')
-                if security_index + 1 < cusip_index:
-                    row_data[security_index+1:cusip_index] = [' '.join(row_data[security_index+1:cusip_index])]
             if len(row_data) > 1 and row_data[0] in ['0', '1']:
                 row_data = row_data[1:]  # Ignore the first element
+            cusip_index = len(row_data)  # Set cusip_index to the maximum index initially
+            if 'cusip' in row_data:
+                cusip_index = row_data.index('cusip')
+            concat_data = ' '.join(row_data[1:cusip_index-1]) if cusip_index > 1 else ''  # Concatenate elements from 2nd to second last element before 'cusip' if present
+            row_data = [row_data[0]] + [concat_data] + row_data[cusip_index:]  # Update row_data with concatenated element
             i += 1
             while i < len(lines) and 'total' not in lines[i].lower():
                 line_data = lines[i].strip().split()
-                if 'security' in line_data and 'cusip' in line_data:
-                    security_index = line_data.index('security')
-                    cusip_index = line_data.index('cusip')
-                    if security_index + 1 < cusip_index:
-                        line_data[security_index+1:cusip_index] = [' '.join(line_data[security_index+1:cusip_index])]
                 if len(line_data) > 1 and line_data[0] in ['0', '1']:
                     line_data = line_data[1:]  # Ignore the first element
+                cusip_index = len(line_data)  # Set cusip_index to the maximum index initially
+                if 'cusip' in line_data:
+                    cusip_index = line_data.index('cusip')
+                concat_data = ' '.join(line_data[1:cusip_index-1]) if cusip_index > 1 else ''  # Concatenate elements from 2nd to second last element before 'cusip' if present
+                line_data = [line_data[0]] + [concat_data] + line_data[cusip_index:]  # Update line_data with concatenated element
                 data.append(row_data + line_data)
                 i += 1
         else:
@@ -43,7 +43,7 @@ def save_to_excel(data, excel_file):
 notepad_file = r'C:\Users\Admin\Desktop\boom 2nd notepad.txt'
 
 # Provide the path where you want to save the Excel file
-excel_file = r'C:\Users\Admin\Desktop\boom6th.xlsx'
+excel_file = r'C:\Users\Admin\Desktop\bluuuuuuu.xlsx'
 
 n, extracted_data = extract_data(notepad_file)
 save_to_excel(extracted_data, excel_file)
