@@ -8,59 +8,28 @@ def extract_data(file_path):
     n = 0
     i = 0
     while i < len(lines):
-        line = lines[i].strip()
-        if 'cusip' in line.lower():
-            n += 1
-            row_data = line.split()
-            i += 1
-            while i < len(lines) and 'total' not in lines[i].lower():
-                line = lines[i].strip()
-                if not line.startswith(' ') and line[0].isdigit() and ' ' not in line:
-                    line = ' ' + line.replace(line.split()[0], '', 1)  # Replace number with blank space
-                row_data.extend(line.split())
-                i += 1
-            data.append(row_data)
-        else:
-            i += 1
-
-    return n, data
-
-def save_to_excel(data, excel_file):
-    df = pd.DataFrame(data)
-    df.to_excel(excel_file, index=False)
-
-# Provide the path to your notepad file
-notepad_file = 'path/to/your/notepad/file.txt'
-
-# Provide the path where you want to save the Excel file
-excel_file = 'path/to/save/structured/file.xlsx'
-
-n, extracted_data = extract_data(notepad_file)
-save_to_excel(extracted_data, excel_file)
-
-print(f"Data extracted for {n} rows and saved to {excel_file}.")
-
-import pandas as pd
-
-def extract_data(file_path):
-    with open(file_path, 'r') as file:
-        lines = file.readlines()
-
-    data = []
-    n = 0
-    i = 0
-    while i < len(lines):
         if 'cusip' in lines[i].lower():
             n += 1
             row_data = lines[i].strip().split()
+            if 'security' in lines[i].lower() and 'cusip' in lines[i].lower():
+                security_index = row_data.index('security')
+                cusip_index = row_data.index('cusip')
+                if security_index + 1 < cusip_index:
+                    row_data[security_index+1:cusip_index] = [' '.join(row_data[security_index+1:cusip_index])]
+            if len(row_data) > 1 and row_data[0] in ['0', '1']:
+                row_data = row_data[1:]  # Ignore the first element
             i += 1
             while i < len(lines) and 'total' not in lines[i].lower():
-                if lines[i].startswith('0') or lines[i].startswith('1'):
-                    row_data.extend(lines[i].strip().split()[1:])
-                else:
-                    row_data.extend(lines[i].strip().split())
+                line_data = lines[i].strip().split()
+                if 'security' in line_data and 'cusip' in line_data:
+                    security_index = line_data.index('security')
+                    cusip_index = line_data.index('cusip')
+                    if security_index + 1 < cusip_index:
+                        line_data[security_index+1:cusip_index] = [' '.join(line_data[security_index+1:cusip_index])]
+                if len(line_data) > 1 and line_data[0] in ['0', '1']:
+                    line_data = line_data[1:]  # Ignore the first element
+                data.append(row_data + line_data)
                 i += 1
-            data.append(row_data)
         else:
             i += 1
 
@@ -71,10 +40,10 @@ def save_to_excel(data, excel_file):
     df.to_excel(excel_file, index=False)
 
 # Provide the path to your notepad file
-notepad_file = 'path/to/your/notepad/file.txt'
+notepad_file = r'C:\Users\Admin\Desktop\boom 2nd notepad.txt'
 
 # Provide the path where you want to save the Excel file
-excel_file = 'path/to/save/structured/file.xlsx'
+excel_file = r'C:\Users\Admin\Desktop\boom6th.xlsx'
 
 n, extracted_data = extract_data(notepad_file)
 save_to_excel(extracted_data, excel_file)
