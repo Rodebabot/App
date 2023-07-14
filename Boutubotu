@@ -47,6 +47,32 @@ def submit_question():
 window = tk.Tk()
 window.title('VTOB - Virtual Talk Operator Bot')
 
+
+
+import pandas as pd
+
+def find_matching_word(sentence, df):
+    words = df['Words'].tolist()
+    for word in words:
+        if word in sentence:
+            return df.loc[df['Words'] == word, 'Number'].iloc[0]
+    return None
+
+# Read the Excel file
+df = pd.read_excel('your_file_path.xlsx')
+
+# Example sentence
+sentence = "This is a sample sentence containing one of the words from the Excel file."
+
+# Find the corresponding number
+result = find_matching_word(sentence, df)
+
+if result is not None:
+    print(f"The corresponding number is: {result}")
+else:
+    print("No matching word found.")
+
+
 # Create the question label and entry
 label_question = tk.Label(window, text='Enter your question:')
 label_question.pack()
