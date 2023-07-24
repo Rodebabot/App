@@ -1,0 +1,43 @@
+import pandas as pd
+import win32com.client as win32
+
+def create_draft(receiver_email, subject, body):
+    outlook = win32.Dispatch("Outlook.Application")
+    mail = outlook.CreateItem(0)  # 0 represents a MailItem object
+
+    mail.To = receiver_email
+    mail.Subject = subject
+    mail.Body = body
+
+    mail.Display(True)  # True opens the mail in a new window (draft)
+
+def main():
+    excel_file = "path_to_your_excel_file.xlsx"
+    sheet_name = "Sheet1"  # Change this to your sheet name
+
+    # Read the data from the Excel file into a pandas DataFrame
+    df = pd.read_excel(excel_file, sheet_name=sheet_name)
+
+    # Print the available names for the user to choose from
+    available_names = df['Name'].unique()
+    print("Available Names:")
+    print("\n".join(available_names))
+
+    # Get user input for the selected name
+    selected_name = input("\nEnter the name to select: ")
+
+    # Filter the DataFrame based on the selected name
+    selected_data = df[df['Name'] == selected_name]
+
+    # Loop through the filtered data and create drafts in Outlook
+    for _, row in selected_data.iterrows():
+        receiver_email = row['Email']
+        subject = "Draft Email"  # Change this to your desired subject
+        body = row['Mail Body']
+
+        create_draft(receiver_email, subject, body)
+
+    print("Drafts created in Outlook for the selected name.")
+
+if __name__ == "__main__":
+    main()
