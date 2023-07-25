@@ -210,3 +210,64 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+import pandas as pd
+import win32com.client as win32
+from docx import Document
+import tkinter as tk
+from tkinter import filedialog
+import threading
+
+file_path_entry = None  # Global variable to store file path entry field
+
+def read_mail_body_from_word(file_path):
+    doc = Document(file_path)
+    full_text = []
+    for para in doc.paragraphs:
+        full_text.append(para.text)
+    return '\n'.join(full_text)
+
+def create_draft(receiver_email, subject, body, mailbox_name=None):
+    outlook = win32.Dispatch("Outlook.Application")
+
+    # If a specific mailbox name is provided, switch to that mailbox
+    if mailbox_name:
+        namespace = outlook.GetNamespace("MAPI")
+        mailbox = namespace.Folders.Item(mailbox_name)
+        inbox = mailbox.Folders.Item("Inbox")
+        inbox.Display()
+
+    mail = outlook.CreateItem(0)  # 0 represents a MailItem object
+
+    mail.To = receiver_email
+    mail.Subject = subject
+    mail.Body = body
+
+    mail.Display(True)  # True opens the mail in a new window (draft)
+
+def process_data():
+    global file_path_entry  # Use the global file_path_entry variable
+
+    excel_file = file_path_entry.get()  # Get file path from the entry field
+    # Rest of the code remains unchanged...
+
+def browse_file():
+    global file_path_entry  # Use the global file_path_entry variable
+
+    file_path = filedialog.askopenfilename(filetypes=[("Excel Files", "*.xlsx")])
+    file_path_entry.delete(0, tk.END)
+    file_path_entry.insert(0, file_path)
+
+def main():
+    global file_path_entry  # Use the global file_path_entry variable
+
+    root = tk.Tk()
+    root.title("Outlook Draft Creator")
+
+    # Rest of the code remains unchanged...
+
+if __name__ == "__main__":
+    main()
