@@ -101,3 +101,112 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+import pandas as pd
+import win32com.client as win32
+from docx import Document
+import tkinter as tk
+from tkinter import filedialog
+import threading
+
+def read_mail_body_from_word(file_path):
+    doc = Document(file_path)
+    full_text = []
+    for para in doc.paragraphs:
+        full_text.append(para.text)
+    return '\n'.join(full_text)
+
+def create_draft(receiver_email, subject, body, mailbox_name=None):
+    outlook = win32.Dispatch("Outlook.Application")
+
+    # If a specific mailbox name is provided, switch to that mailbox
+    if mailbox_name:
+        namespace = outlook.GetNamespace("MAPI")
+        mailbox = namespace.Folders.Item(mailbox_name)
+        inbox = mailbox.Folders.Item("Inbox")
+        inbox.Display()
+
+    mail = outlook.CreateItem(0)  # 0 represents a MailItem object
+
+    mail.To = receiver_email
+    mail.Subject = subject
+    mail.Body = body
+
+    mail.Display(True)  # True opens the mail in a new window (draft)
+
+def process_data():
+    excel_file = file_path_entry.get()
+    sheet_name = sheet_name_entry.get()
+    selected_name = selected_name_entry.get()
+    mailbox_name = mailbox_name_entry.get()
+
+    try:
+        # Read the data from the Excel file into a pandas DataFrame
+        df = pd.read_excel(excel_file, sheet_name=sheet_name)
+
+        # Filter the DataFrame based on the selected name
+        selected_data = df[df['Name'] == selected_name]
+
+        # Loop through the filtered data and create drafts in Outlook
+        for _, row in selected_data.iterrows():
+            receiver_email = row['Email']
+            subject = "Draft Email"  # Change this to your desired subject
+            file_path = row['Location and File Name']
+
+            # Read the mail body from the Word file
+            mail_body = read_mail_body_from_word(file_path)
+
+            create_draft(receiver_email, subject, mail_body, mailbox_name)
+
+        status_label.config(text="Drafts created in Outlook for the selected name.")
+    except Exception as e:
+        status_label.config(text=f"Error: {str(e)}")
+
+def browse_file():
+    file_path = filedialog.askopenfilename(filetypes=[("Excel Files", "*.xlsx")])
+    file_path_entry.delete(0, tk.END)
+    file_path_entry.insert(0, file_path)
+
+def main():
+    root = tk.Tk()
+    root.title("Outlook Draft Creator")
+
+    # Create labels and entry fields for user input
+    file_path_label = tk.Label(root, text="Excel File Path:")
+    file_path_label.pack()
+    file_path_entry = tk.Entry(root)
+    file_path_entry.pack()
+    browse_button = tk.Button(root, text="Browse", command=browse_file)
+    browse_button.pack()
+
+    sheet_name_label = tk.Label(root, text="Sheet Name:")
+    sheet_name_label.pack()
+    sheet_name_entry = tk.Entry(root)
+    sheet_name_entry.pack()
+
+    selected_name_label = tk.Label(root, text="Selected Name:")
+    selected_name_label.pack()
+    selected_name_entry = tk.Entry(root)
+    selected_name_entry.pack()
+
+    mailbox_name_label = tk.Label(root, text="Mailbox Name (Optional):")
+    mailbox_name_label.pack()
+    mailbox_name_entry = tk.Entry(root)
+    mailbox_name_entry.pack()
+
+    process_button = tk.Button(root, text="Create Drafts", command=lambda: threading.Thread(target=process_data).start())
+    process_button.pack()
+
+    status_label = tk.Label(root, text="")
+    status_label.pack()
+
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
