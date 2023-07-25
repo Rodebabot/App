@@ -301,3 +301,75 @@ def main():
 if __name__ == "__main__":
     main()
 
+
+
+
+
+
+
+
+import pandas as pd
+import win32com.client as win32
+from docx import Document
+
+def read_mail_body_from_word(file_path):
+    doc = Document(file_path)
+    full_text = []
+    for para in doc.paragraphs:
+        full_text.append(para.text)
+    return '\n'.join(full_text)
+
+def create_draft(receiver_email, subject, body, mailbox_name=None):
+    outlook = win32.Dispatch("Outlook.Application")
+
+    # If a specific mailbox name is provided, switch to that mailbox
+    if mailbox_name:
+        namespace = outlook.GetNamespace("MAPI")
+        mailbox = namespace.Folders.Item(mailbox_name)
+        inbox = mailbox.Folders.Item("Inbox")
+        inbox.Display()
+
+    mail = outlook.CreateItem(0)  # 0 represents a MailItem object
+
+    mail.To = receiver_email
+    mail.Subject = subject
+    mail.Body = body
+
+    mail.Display(True)  # True opens the mail in a new window (draft)
+
+def main():
+    excel_file = "path_to_your_excel_file.xlsx"
+    sheet_name = "Sheet1"  # Change this to your sheet name
+
+    # Read the data from the Excel file into a pandas DataFrame
+    df = pd.read_excel(excel_file, sheet_name=sheet_name)
+
+    # Print the available names for the user to choose from
+    available_names = df['Name'].unique()
+    print("Available Names:")
+    print("\n".join(available_names))
+
+    # Get user input for the selected name
+    selected_name = input("\nEnter the name to select: ")
+
+    # Filter the DataFrame based on the selected name
+    selected_data = df[df['Name'] == selected_name]
+
+    # Ask the user for the mailbox name to use for replying
+    mailbox_name = input("Enter the name of the mailbox to use (leave empty for default): ")
+
+    # Loop through the filtered data and create drafts in Outlook
+    for _, row in selected_data.iterrows():
+        receiver_email = row['Email']
+        subject = "Draft Email"  # Change this to your desired subject
+        file_path = row['Location and File Name']
+
+        # Read the mail body from the Word file
+        mail_body = read_mail_body_from_word(file_path)
+
+        create_draft(receiver_email, subject, mail_body, mailbox_name)
+
+    print("Drafts created in Outlook for the selected name.")
+
+if __name__ == "__main__":
+    main()
