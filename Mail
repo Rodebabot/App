@@ -230,23 +230,52 @@ def read_mail_body_from_word(file_path):
         full_text.append(para.text)
     return '\n'.join(full_text)
 
+
+
+
+
+
+
+
+import pandas as pd
+import smtplib
+from email.message import EmailMessage
+from docx import Document
+import tkinter as tk
+from tkinter import filedialog
+import threading
+
+file_path_entry = None  # Global variable to store file path entry field
+
+def read_mail_body_from_word(file_path):
+    doc = Document(file_path)
+    full_text = []
+    for para in doc.paragraphs:
+        full_text.append(para.text)
+    return '\n'.join(full_text)
+
 def create_draft(receiver_email, subject, body, mailbox_name=None):
-    outlook = win32.Dispatch("Outlook.Application")
+    smtp_server = 'your_smtp_server'
+    smtp_port = 587
+    sender_email = 'your_sender_email'
+    sender_password = 'your_sender_password'
 
-    # If a specific mailbox name is provided, switch to that mailbox
     if mailbox_name:
-        namespace = outlook.GetNamespace("MAPI")
-        mailbox = namespace.Folders.Item(mailbox_name)
-        inbox = mailbox.Folders.Item("Inbox")
-        inbox.Display()
+        sender_email = f'{mailbox_name}@your_domain.com'
 
-    mail = outlook.CreateItem(0)  # 0 represents a MailItem object
+    msg = EmailMessage()
+    msg['Subject'] = subject
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    msg.set_content(body)
 
-    mail.To = receiver_email
-    mail.Subject = subject
-    mail.Body = body
-
-    mail.Display(True)  # True opens the mail in a new window (draft)
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+    except Exception as e:
+        raise Exception(f"Failed to send draft: {str(e)}")
 
 def process_data():
     global file_path_entry  # Use the global file_path_entry variable
@@ -271,3 +300,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
