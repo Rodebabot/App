@@ -1,137 +1,34 @@
-import pandas as pd
-import tkinter as tk
-from tkinter import messagebox, ttk
-from datetime import date
+import openpyxl
+from pyOutlook import Outlook
 
-# Load the Excel file into a pandas DataFrame
-df = pd.read_excel('knowledge_base.xlsx')
+# Define the path to your Excel file
+excel_file_path = 'your_excel_file.xlsx'
 
-def get_response(question, response_type):
-    global df
-    keyword = None
-    answer = None
-    link = None
+# Load the Excel file
+workbook = openpyxl.load_workbook(excel_file_path)
+sheet = workbook.active
 
-    # Convert question to lowercase for case-insensitive matching
-    question_lower = question.lower()
+# Initialize Outlook client
+outlook = Outlook()
 
-    # Check if the question is already present in the DataFrame
-    matching_rows = df[df['Question'].apply(lambda x: isinstance(x, str) and x.lower() == question_lower)]
-    if not matching_rows.empty:
-        answer = matching_rows['Answer'].iloc[0]
-        link = matching_rows['Links'].iloc[0]
-    else:
-        # Search for keywords in the question
-        for idx, row in df.iterrows():
-            if isinstance(row['Keyword'], str) and row['Keyword'].lower() in question_lower:
-                keyword = row['Keyword']
-                answer = row['Answer']
-                link = row['Links']
-                break
+# Loop through rows in the Excel file
+for row in sheet.iter_rows(min_row=2, values_only=True):  # Assuming headers are in the first row
+    sender = row[0]  # Column 1 contains the sender's email address
+    subject = row[1]  # Column 2 contains the email subject
+    category = row[2]  # Column 3 contains the category
 
-        # If a keyword is found, add the question to the DataFrame
-        if keyword is not None:
-            new_row = {'Keyword': keyword, 'Question': question, 'Answer': answer, 'Links': link}
-            df = df.append(new_row, ignore_index=True)
-        else:
-            # Add the unknown question to the DataFrame
-            new_row = {'Keyword': '', 'Question': question, 'Links': link, 'Answer': ''}
-            df = df.append(new_row, ignore_index=True)
-            link = date.today().strftime("%d/%m/%y")
-            df.loc[df['Question'] == question, 'Links'] = link
+    # Find emails matching sender and subject
+    emails = outlook.search(sender=sender, subject=subject)
 
-        # Save the updated DataFrame back to the Excel file
-        df.to_excel('knowledge_base.xlsx', index=False)
+    # Ensure the category exists in Outlook
+    if category not in outlook.get_categories():
+        outlook.create_category(category)
 
-    response = ''
-    if response_type == 'Answer':
-        response = answer
-    elif response_type == 'Link':
-        response = link
-    elif response_type == 'Both':
-        response = f'Answer: {answer}\nLink: {link}'
+    # Categorize matching emails
+    for email in emails:
+        email.set_categories(category)
 
-    return response
+# Save changes to the Outlook folder (e.g., Inbox)
+outlook.save_changes()
 
-def submit_question():
-    question = entry_question.get()
-    response_type = combo_response_type.get()
-
-    if not question:
-        messagebox.showerror('Error', 'Please enter a question.')
-        return
-
-    response = get_response(question, response_type)
-    if response:
-        if response_type == 'Link':
-            link_window = tk.Toplevel(window)
-            link_window.title('Link')
-            link_text = tk.Text(link_window, height=1, width=50)
-            link_text.insert(tk.END, response)
-            link_text.pack()
-        else:
-            messagebox.showinfo('Response', response)
-    else:
-        messagebox.showinfo('No Response', 'I apologize, but I don\'t have a response to that. Can you please provide more details?')
-
-# Create the GUI window
-window = tk.Tk()
-window.title('VTOB - Virtual Talk Operator Bot')
-
-# Set window size and position
-window.geometry('400x250')
-window.resizable(0, 0)
-
-# Add logo
-logo = tk.PhotoImage(file='logo.png')
-logo_label = tk.Label(window, image=logo)
-logo_label.pack()
-
-# Create the question label and entry
-label_question = tk.Label(window, text='Enter your question:', font='Helvetica 12 bold')
-label_question.pack(pady=10)
-
-entry_question = tk.Entry(window, width=50, font='Helvetica 11')
-entry_question.pack()
-
-# Create the response type dropdown menu
-label_response_type = tk.Label(window, text='Select response type:', font='Helvetica 12 bold')
-label_response_type.pack(pady=10)
-
-response_types = ['Answer', 'Link', 'Both']
-combo_response_type = ttk.Combobox(window, values=response_types, state='readonly', font='Helvetica 11')
-combo_response_type.set(response_types[0])
-combo_response_type.pack()
-
-# Create the submit button
-button_submit = tk.Button(window, text='Submit', command=submit_question, font='Helvetica 11 bold', bg='#4CAF50', fg='white')
-button_submit.pack(pady=15, ipadx=10, ipady=5)
-
-# Run the GUI window
-window.mainloop()
-
-
-# Assuming you have a list of selected rows as 'selected_rows'
-selected_rows = [...]
-
-# Step 1: Check if there are multiple rows selected
-if len(selected_rows) > 1:
-    # Step 2: If only one row is selected, continue with the other block of code
-    # Assuming 'client_reference_index' is the index of the 'client reference' column in each row
-    client_reference_values = [row['client_reference'] for row in selected_rows]
-    
-    # Step 3: Check if the values in the 'client reference' column are the same for all selected rows
-    if all(value == client_reference_values[0] for value in client_reference_values):
-        # Step 4: If the values are the same, continue with the other block of code
-        # Your code block here
-        # ...
-        pass
-    else:
-        # Step 5: If the values are different, show an error message
-        print("Error: Selected rows have different 'client reference' values.")
-else:
-    # Only one row selected, continue with the other block of code
-    # Your code block here
-    # ...
-    pass
 
