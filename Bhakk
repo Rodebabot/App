@@ -1,34 +1,39 @@
-import openpyxl
-from pyOutlook import Outlook
+import pandas as pd
+import win32com.client
+from datetime import datetime, timedelta
 
-# Define the path to your Excel file
+# Step 2: Read Excel file
 excel_file_path = 'your_excel_file.xlsx'
+df = pd.read_excel(excel_file_path)
 
-# Load the Excel file
-workbook = openpyxl.load_workbook(excel_file_path)
-sheet = workbook.active
+# Step 3: Connect to Outlook and fetch emails
+outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
+inbox = outlook.GetDefaultFolder(6)  # 6 corresponds to the Inbox folder
 
-# Initialize Outlook client
-outlook = Outlook()
+# User-defined criteria
+subject_criteria = "Your Subject"
+sender_criteria = "Sender's Email Address"
 
-# Loop through rows in the Excel file
-for row in sheet.iter_rows(min_row=2, values_only=True):  # Assuming headers are in the first row
-    sender = row[0]  # Column 1 contains the sender's email address
-    subject = row[1]  # Column 2 contains the email subject
-    category = row[2]  # Column 3 contains the category
+# Calculate the date range for emails (from midnight today to midnight tomorrow)
+today = datetime.today()
+start_date = today.replace(hour=0, minute=0, second=0, microsecond=0)
+end_date = start_date + timedelta(days=1)
 
-    # Find emails matching sender and subject
-    emails = outlook.search(sender=sender, subject=subject)
+# Filter emails based on criteria and received date
+filtered_emails = [email for email in inbox.Items if email.Subject == subject_criteria
+                   and email.SenderEmailAddress == sender_criteria
+                   and start_date <= email.ReceivedTime <= end_date]
 
-    # Ensure the category exists in Outlook
-    if category not in outlook.get_categories():
-        outlook.create_category(category)
+# Step 4-6: Iterate through filtered emails, extract data, and write to Excel
+for email in filtered_emails:
+    email_body = email.Body
+    for word_or_phrase in df['Words or Phrases']:
+        if word_or_phrase in email_body:
+            extracted_text = email_body.split(word_or_phrase, 1)[1].strip()
+            # You can now write 'word_or_phrase' and 'extracted_text' to an Excel sheet
 
-    # Categorize matching emails
-    for email in emails:
-        email.set_categories(category)
+# Save the updated Excel file
+df.to_excel('output_excel_file.xlsx', index=False)
 
-# Save changes to the Outlook folder (e.g., Inbox)
-outlook.save_changes()
 
 
