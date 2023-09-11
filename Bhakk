@@ -87,3 +87,54 @@ result_df = pd.DataFrame({'Words or Phrases': extracted_lines})
 # Save the result DataFrame to an Excel file
 result_df.to_excel('output_excel_file.xlsx', index=False)
 
+
+
+import pandas as pd
+import win32com.client
+from datetime import datetime, timedelta, timezone
+
+# Step 2: Read Excel file
+excel_file_path = 'your_excel_file.xlsx'
+df = pd.read_excel(excel_file_path)
+
+# Step 3: Connect to Outlook and fetch emails
+outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
+inbox = outlook.GetDefaultFolder(6)  # 6 corresponds to the Inbox folder
+
+# User-defined criteria
+subject_criteria = "Your Subject"
+sender_criteria = "Sender's Email Address"
+
+# Get the local timezone
+local_timezone = datetime.now().astimezone().tzinfo
+
+# Calculate the date range for emails (from midnight today to midnight tomorrow)
+today = datetime.today()
+start_date = today.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=local_timezone)
+end_date = start_date + timedelta(days=1)
+
+# Filter emails based on criteria and received date
+filtered_emails = [email for email in inbox.Items if email.Subject == subject_criteria
+                   and email.SenderEmailAddress == sender_criteria
+                   and start_date <= email.ReceivedTime <= end_date]
+
+# Create a list to store extracted lines
+extracted_lines = []
+
+# Step 4-6: Iterate through filtered emails, extract data, and write to Excel
+for email in filtered_emails:
+    email_body = email.Body
+    for word_or_phrase in df['Words or Phrases']:
+        if word_or_phrase in email_body:
+            # Split the email body into lines
+            lines = email_body.split('\n')
+            for line in lines:
+                if word_or_phrase in line:
+                    extracted_lines.append(line.strip())
+                    break  # Exit the inner loop once a matching line is found
+
+# Create a DataFrame from the extracted lines
+result_df = pd.DataFrame({'Words or Phrases': extracted_lines})
+
+# Save the result DataFrame to an Excel file
+result_df.to_excel('output_excel_file.xlsx', index=False)
